@@ -1,16 +1,33 @@
-import youtube_dl, os, threading, logging, json
+import youtube_dl, os, threading, logging, json, sys, base64
 with open('raspberrycast.conf') as f:    
     config = json.load(f)
 logger = logging.getLogger("RaspberryCast")
 volume = 0
+
+def launchimage(url):
+	os.system("echo -n q > /tmp/cmd &") #Kill previous instance of OMX
+
+	if "data:image/" in url:
+		if "base64," in url:
+			logger.info("Base64 Image Data Received")
+			b64img = base64.b64decode(url.split(',')[1])
+			imgfile = open('download/image', 'wb')
+			imgfile.write(b64img)
+			imgfile.close()
+	else:
+		logger.info("Url Image Data Received")
+		os.system("wget -O download/image " + url)
+
+	os.system("sudo fbi -T 1 -a --noverbose download/image")
+	return "1"
 
 def launchvideo(url, sub=False):
 	setState("2")
 	
 	os.system("echo -n q > /tmp/cmd &") #Kill previous instance of OMX
 
-	if config["new_log"]:
-		os.system("sudo fbi -T 1 -a --noverbose images/processing.jpg")
+	#if config["new_log"]:
+	#	os.system("sudo fbi -T 1 -a --noverbose images/processing.jpg")
 
 	logger.info('Extracting source video URL...')	
 	out = return_full_url(url, sub)
@@ -114,11 +131,11 @@ def playWithOMX(url, sub):
 
 	setState("1")
 	if sub:
-		os.system("omxplayer -b -r -o both '" + url + "' --vol " + str(volume) + " --subtitles subtitle.srt < /tmp/cmd")
+		os.system("omxplayer -b -r -o hdmi '" + url + "' --vol " + str(volume) + " --subtitles subtitle.srt < /tmp/cmd")
 	elif url is None:
 		pass
 	else :
-		os.system("omxplayer -b -r -o both '" + url + "' --vol " + str(volume) + " < /tmp/cmd")
+		os.system("omxplayer -b -r -o hdmi '" + url + "' --vol " + str(volume) + " < /tmp/cmd")
 	
 	if getState() != "2": # In case we are again in the launchvideo function
 		setState("0")

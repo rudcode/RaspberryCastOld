@@ -107,6 +107,8 @@ def queue():
 			logger.info('No video currently playing, playing url : '+url)
 			if ("youtu" in url and "list=" in url) or ("soundcloud" in url and "/sets/" in url):
 				playlist(url, True)
+			elif (".jpeg" in url or ".png" in url or ".jpg" in url or "data:image" in url) and "youtu" not in url:
+				launchimage(url)
 			else:
 				launchvideo(url, False)
 			return "1"
@@ -171,5 +173,11 @@ def webstate():
 	currentState = getState()
 	logger.debug("Running state as been asked : "+currentState)
 	return currentState
-		
+
+@app.route('/image')	
+def image():
+	url = request.query_string
+        logger.debug('Received URL to cast: '+url)
+	return launchimage(url)
+	
 run(app, reloader=False, host='0.0.0.0', debug=True, quiet=True, port=2020)
